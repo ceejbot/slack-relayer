@@ -1,0 +1,49 @@
+{
+  "name": "slack-relayer",
+  "description": "relay any string you want to slack, using events",
+  "version": "1.0.0",
+  "author": "C J Silverio <ceejceej@gmail.com>",
+  "bin": {
+    "slack-relayer": "slack-relay.js"
+  },
+  "bugs": {
+    "url": "https://github.com/ceejbot/slack-relayer/issues"
+  },
+  "dependencies": {
+    "@slack/client": "~3.10.0",
+    "bistre": "~1.0.1",
+    "bole": "~3.0.2"
+  },
+  "devDependencies": {
+    "eslint-config-ceejbot": "~1.0.4",
+    "mocha": "~3.4.2",
+    "must": "~0.13.4",
+    "nyc": "~10.3.2",
+    "sinon": "~2.3.2",
+    "xo": "~0.18.2"
+  },
+  "homepage": "https://github.com/ceejbot/slack-relayer#readme",
+  "keywords": [
+    "conveniences",
+    "slack",
+    "cli"
+  ],
+  "license": "ISC",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ceejbot/slack-relayer.git"
+  },
+  "scripts": {
+    "coverage": "nyc mocha -R spec",
+    "lint": "xo",
+    "test": "mocha -R spec",
+    "travis": "npm run coverage && npm run lint"
+  },
+  "xo": {
+    "extends": "eslint-config-ceejbot",
+    "rules": {
+      "prefer-arrow-callback": 0
+    }
+  }
+}
