@@ -9,7 +9,7 @@ const createSlacker = require('slack-relayer');
 
  // returns the object just in case
 const relayer = createSlacker({
-	channel: '#bots',
+	channel: 'bots',
 	token: process.env.SLACK_API_TOKEN,
 	event: 'event-to-listen-for'
 });
@@ -19,13 +19,16 @@ process.emit('event-to-listen-for', 'I have a terrible pain in all the diodes do
 // the relayer will then post this to slack for us with zero effort
 ```
 
+You can use either a channel id or a channel name. It'll look up the channel id if you pass a name. It will maintain a backlog of up to 100 messages while it waits for the lookup, and unregister itself if it can't find the channel.
+
 ## bonus!
 
 ```
 > npm install -g slack-relayer
-> slack-relay general "omg this is a thing"
+> slack-relayer general "omg this is a thing"
+```
 
-You must have `SLACK_API_TOKEN` or `SLACK_TOKEN` set in your environment.
+You must have `SLACK_API_TOKEN` or `SLACK_TOKEN` set in your environment for this to work.
 
 ## license
 
