@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "author": "C J Silverio <ceejceej@gmail.com>",
   "bin": {
-    "slack-relayer": "slack-relay.js"
+    "slack-relayer": "bin/slack-relay.js"
   },
   "bugs": {
     "url": "https://github.com/ceejbot/slack-relayer/issues"
