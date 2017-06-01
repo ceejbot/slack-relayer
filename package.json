@@ -1,7 +1,7 @@
 {
   "name": "slack-relayer",
   "description": "relay any string you want to slack, using events",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "C J Silverio <ceejceej@gmail.com>",
   "bin": {
     "slack-relayer": "bin/slack-relay.js"
