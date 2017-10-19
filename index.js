@@ -23,9 +23,12 @@ class SlackRelayer
 		this.channel = opts.channel;
 		this.slack = new slack.WebClient(opts.token);
 		this.logger = bole(opts.event);
+                this.prefix = opts.prefix || '';
 		this.allchannels = {};
 		this.backlog = [];
+		this.digest = {};
 		this.chanid = null;
+		this.messageInterval = opts.messageInterval||30000
 
 		const func = msg => this.handleEvent(msg);
 
@@ -54,23 +57,81 @@ class SlackRelayer
 		process.on(opts.event, func);
 	}
 
-	handleEvent(message)
+	handleEvent(key,message)
 	{
+		if (!message) 
+		{
+			message = key;
+			key = '';
+		}
+
 		message = String(message);
 		if (!this.chanid)
 		{
-			this.backlog.push(message);
+			this.backlog.push([key,message]);
 			if (this.backlog.length > 100)
 				this.backlog = this.backlog.slice(-100);
 			return;
 		}
 
-		this.post(message);
+		this.maybePost(key,message);
+	}
+
+        maybePost(key, message)
+        {
+		key = key||''
+		if(!this.digests[key]){
+			this.digests[key] = {message:"",count:0,time:0}
+		}
+
+		this.digests[key].message = message;
+		this.digests[key].count++
+		this.digests[key].time = Date.now()
+
+		this.postDigests()
+        }
+
+
+
+
+	postDigests()
+	{
+		if(this.posting) return;
+
+		var all = [];
+		var digests = this.digests;
+		this.digests = {};
+
+		Promise.all(this.formatMessage(digests).map( s => this.post(message)))
+		.then(()=>{
+			setTimeout(() =>
+			{
+				this.posting = false;
+				if(Object.keys(this.digests).length)
+					this.digestMessages();
+			},this.messageInterval).unref()	
+		})
+
+	}
+
+	formatMessages(digests)
+	{
+		var messages = []
+		Object.keys(digests).forEach((o) =>
+		{
+
+			var out = ""
+			out += (o.key ? '[' + o.key + '] ' : '') + + o.message + "\n";
+			if(o.count > 1) out += o.count+' messages were merged'.
+			out.push(messages)
+		})
+
+		return out
 	}
 
 	post(message)
 	{
-		this.slack.chat.postMessage(this.chanid, message).then(rez =>
+		return this.slack.chat.postMessage(this.chanid,this.prefix+message).then(rez =>
 		{
 			this.logger.debug(`posted message: ${message}`);
 		}).catch(err =>
@@ -85,7 +146,7 @@ class SlackRelayer
 		// YOLO!!!!!!!!
 		while (this.backlog.length)
 		{
-			this.post(this.backlog.pop());
+			this.maybePost.apply(this,this.backlog.pop());
 		}
 	}
 }
