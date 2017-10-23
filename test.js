@@ -64,7 +64,7 @@ describe('slack-relayer', () =>
 		r.slack.chat.postMessage = function(channel, msg)
 		{
 			channel.must.equal(opts.channel);
-			msg.must.equal(original);
+			msg.split("\n")[1].must.equal('> '+original);
 			done();
 		};
 		process.emit('maybe', original);
