@@ -23,11 +23,15 @@ class SlackRelayer
 		this.channel = opts.channel;
 		this.slack = new slack.WebClient(opts.token);
 		this.logger = bole(opts.event);
+                this.prefix = opts.prefix || '';
 		this.allchannels = {};
 		this.backlog = [];
+		this.digests = {};
 		this.chanid = null;
+		this.slackInterval = opts.slackInterval||10000
+		this.lineLimit = opts.lineLimit||10
 
-		const func = msg => this.handleEvent(msg);
+		const func = (key,msg) => this.handleEvent(key, msg);
 
 		if (opts.channel.startsWith('C') && opts.channel.length === 10)
 			this.chanid = opts.channel;
@@ -54,23 +58,95 @@ class SlackRelayer
 		process.on(opts.event, func);
 	}
 
-	handleEvent(message)
+	handleEvent(key,message)
 	{
+		if (!message) 
+		{
+			message = key;
+			key = '';
+		}
+
 		message = String(message);
 		if (!this.chanid)
 		{
-			this.backlog.push(message);
+			this.backlog.push([key,message]);
 			if (this.backlog.length > 100)
 				this.backlog = this.backlog.slice(-100);
 			return;
 		}
 
-		this.post(message);
+		this.maybePost(key,message);
+	}
+
+        maybePost(key, message)
+        {
+		key = key||''
+		if(!this.digests[key]){
+			this.digests[key] = {message:[],count:0,time:0}
+		}
+		
+		this.digests[key].message.push(message)
+		if(this.digests[key].message.length > this.lineLimit){
+			this.digests[key].message = this.digests[key].message.slice(this.lineLimit*-1)
+		}
+
+		this.digests[key].count++
+		this.digests[key].time = Date.now()
+
+		this.postDigests()
+        }
+
+	postDigests()
+	{
+		if(this.posting) return;
+
+		this.posting = true;
+
+		var all = [];
+		var digests = this.digests;
+		this.digests = {};
+
+		console.log(digests)
+		var formatted = this.formatMessages(digests);
+		Promise.all(formatted.map( message => {
+			this.post(message)
+		}))
+		.then(()=>{
+			setTimeout(() =>
+			{
+				this.posting = false;
+				if(Object.keys(this.digests).length)
+					this.postDigests();
+			},this.slackInterval).unref()	
+		})
+
+	}
+
+	formatMessages(digests)
+	{
+		var messages = [];
+
+		Object.keys(digests).forEach((k) =>
+		{
+			var o = digests[k]
+			var out;
+
+			var out = (new Date(o.time)).toJSON() + '\n' 
+			out += "> " + (k ?  k + ': ' : '') + o.message.join("\n>") + (o.count > this.lineLimit?'\n>...':'') + "\n";
+			if(o.count > 1) out += o.count+' messages in '+(this.slackInterval/1000)+' seconds';
+
+			messages.push(out);
+		})
+
+		return messages
 	}
 
 	post(message)
 	{
-		this.slack.chat.postMessage(this.chanid, message).then(rez =>
+
+		//return Promise.resolve();
+
+		return this.slack.chat.postMessage(this.chanid,this.prefix+message).then(rez =>
 		{
 			this.logger.debug(`posted message: ${message}`);
 		}).catch(err =>
@@ -85,7 +161,7 @@ class SlackRelayer
 		// YOLO!!!!!!!!
 		while (this.backlog.length)
 		{
-			this.post(this.backlog.pop());
+			this.maybePost.apply(this,this.backlog.pop());
 		}
 	}
 }
